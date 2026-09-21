@@ -13,7 +13,7 @@ that somebody rebuilds by hand every Monday.
 | [`PROCESS_LOG.md`](PROCESS_LOG.md) | How I worked with the AI, what I redirected, what I assumed |
 | [`NEXT_STEPS.md`](NEXT_STEPS.md) | What I would do with more time — and what I would leave alone |
 | [`reports/perfilado.md`](reports/perfilado.md) | The data-quality report the cleaning decisions came from |
-| **AI conversation** | _paste the shared Claude conversation link here_ |
+| [`AI_CONVERSATION.md`](AI_CONVERSATION.md) | Summarised transcript of the working session — the tool used does not emit a public share link |
 
 Every step of the pipeline can be verified from a clean checkout:
 
