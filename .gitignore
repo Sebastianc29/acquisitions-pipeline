@@ -10,3 +10,4 @@ secrets_auth.txt
 __pycache__/
 *.pyc
 data/deals.db
+secrets.toml
