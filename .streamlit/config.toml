@@ -1,0 +1,13 @@
+# Light on purpose: it is the surface (#fcfcfb) the chart palette was
+# validated against. Switching to dark would require re-running the
+# palette validator, not inverting the colours.
+
+[theme]
+base = "light"
+primaryColor = "#2a78d6"
+backgroundColor = "#fcfcfb"
+secondaryBackgroundColor = "#f2f2ef"
+textColor = "#0b0b0b"
+
+[browser]
+gatherUsageStats = false
