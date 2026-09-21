@@ -3,7 +3,31 @@
 One dataset, five views. Replaces both the 170-tab spreadsheet and the deck
 that somebody rebuilds by hand every Monday.
 
-**Live app:** https://acquisitions-pipeline-gxiehbbnx7jvutyhrvqhko.streamlit.app 
+**Live app:** https://acquisitions-pipeline-gxiehbbnx7jvutyhrvqhko.streamlit.app
+
+**Submission documents**
+
+| Document | What it is |
+|---|---|
+| [`FLOWCHART.md`](FLOWCHART.md) | Case study flowchart — the decisions, not just the data flow |
+| [`PROCESS_LOG.md`](PROCESS_LOG.md) | How I worked with the AI, what I redirected, what I assumed |
+| [`NEXT_STEPS.md`](NEXT_STEPS.md) | What I would do with more time — and what I would leave alone |
+| [`reports/perfilado.md`](reports/perfilado.md) | The data-quality report the cleaning decisions came from |
+| **AI conversation** | _paste the shared Claude conversation link here_ |
+
+Every step of the pipeline can be verified from a clean checkout:
+
+```bash
+python validate_schema.py     # the canonical schema
+python verificar_paso1.py     # ingestion, including the font-colour scan
+python verificar_paso5.py     # unification and the overrides layer
+python verificar_final.py     # end to end, incl. weekly review vs target
+```
+
+`verificar_final.py` is the one that matters: it compares the generated
+weekly review against `target_weekly_view` field by field — the sheet
+somebody currently rebuilds by hand. Five rows, seven fields each, zero
+differences.
 
 ---
 
