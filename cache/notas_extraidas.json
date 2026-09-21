@@ -1,0 +1,38 @@
+{
+  "3ee42d1c73e36e00": {
+    "current_price": 3050000,
+    "current_price_fragmento": "we responded at $3.05M",
+    "deposit": null,
+    "deposit_fragmento": null,
+    "rent_year": null,
+    "rent_year_fragmento": null,
+    "deal_type": "sale",
+    "deal_type_fragmento": null,
+    "incertidumbre": false,
+    "incertidumbre_fragmento": null
+  },
+  "1d93779935ef3e5a": {
+    "current_price": null,
+    "current_price_fragmento": null,
+    "deposit": 250000,
+    "deposit_fragmento": "deposit $250,000",
+    "rent_year": null,
+    "rent_year_fragmento": null,
+    "deal_type": "sale",
+    "deal_type_fragmento": "closing 11/25",
+    "incertidumbre": false,
+    "incertidumbre_fragmento": null
+  },
+  "ab86dec9e9ede379": {
+    "current_price": null,
+    "current_price_fragmento": null,
+    "deposit": null,
+    "deposit_fragmento": null,
+    "rent_year": 4000000,
+    "rent_year_fragmento": "$4M/yr rent",
+    "deal_type": "lease",
+    "deal_type_fragmento": "received lease draft",
+    "incertidumbre": false,
+    "incertidumbre_fragmento": null
+  }
+}

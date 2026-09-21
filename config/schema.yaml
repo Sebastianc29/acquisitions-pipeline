@@ -1,0 +1,469 @@
+# ============================================================================
+# schema.yaml — Especificación canónica del pipeline
+# Case Study: Tool Builder / AI Coder (L3)
+#
+# Este archivo es la ÚNICA fuente de configuración del ETL y de la app.
+# No hay mapeos hardcodeados en el código Python.
+#
+# Reemplaza a la "config tab" que el brief menciona y que esta copia
+# del spreadsheet no incluye (ver assumptions_log al final).
+# ============================================================================
+
+meta:
+  version: 1
+  source_file: "MAKE A COPY_DevOps Case Study Data.xlsx"
+  sheets:
+    - av_clientC_atl
+    - food_clientA_nyc
+    - catering_clientB_jfk
+    - contact_tracker        # no es un client search: log de outreach
+    - target_weekly_view     # NO es input: es la forma objetivo del output
+
+# ============================================================================
+# 1. VERTICALES
+# Derivados del prefijo del nombre de la hoja. Los display names salen
+# de target_weekly_view, que es el vocabulario que ve liderazgo.
+# ============================================================================
+
+verticals:
+  food:
+    display: "Food"
+    sheets: [food_clientA_nyc]
+  av:
+    display: "Autonomous Vehicle"
+    sheets: [av_clientC_atl]
+  catering:
+    display: "Airline Catering"
+    sheets: [catering_clientB_jfk]
+
+# ============================================================================
+# 2. FUNNEL Y NORMALIZACIÓN DE STATUS
+#
+# Proceso en 2 tiempos:
+#   a) normalizar: lower(), strip(), colapsar espacios, quitar puntuación
+#   b) recorrer los patrones EN ORDEN; el primero que matchea gana
+#
+# Si un valor no matchea NINGÚN patrón -> NO se manda a "Otro".
+# Se deja el registro con status=null y se reporta en el load_report.
+# El valor original SIEMPRE se conserva en status_raw.
+# ============================================================================
+
+funnel:
+  order:                     # orden del brief; define el avance del pipeline
+    - sourcing
+    - in_pipeline
+    - pre_loi
+    - negotiating_loi
+    - negotiating_psa
+    - in_contract
+    - closed
+  terminal:
+    - closed
+    - on_hold                # fuera del orden: es una pausa, no una etapa
+
+status_map:
+  # canonical:  [lista de patrones regex, aplicados sobre el texto normalizado]
+  sourcing:
+    display: "Sourcing"
+    patterns: ['^sourcing$']
+    # cubre: 'Sourcing', 'sourcing', 'SOURCING'
+  in_pipeline:
+    display: "In Pipeline"
+    patterns: ['^in\s*pipeline$', '^listed$']
+    # 'listed' NO existe en el funnel del brief. Decisión de criterio:
+    # la única fila con ese valor tiene nota "market prep", que describe
+    # un sitio identificado pero sin avance. Se mapea a In Pipeline y se
+    # marca en el load_report como mapeo dudoso, visible en la app.
+  pre_loi:
+    display: "Pre LOI"
+    patterns: ['^pre\s*loi$']
+  negotiating_loi:
+    display: "Negotiating LOI"
+    patterns: ['^negotiating\s*loi$', '^nego\s*loi$']
+  negotiating_psa:
+    display: "Negotiating PSA"
+    patterns: ['^negotiating\s*psa$', '^nego\s*psa$']
+    # cubre: 'Negotiating PSA', 'nego PSA', 'NEGOTIATING PSA'
+  in_contract:
+    display: "In Contract"
+    patterns: ['^in\s*contract$', '^under\s*contract$']
+    # 'Under Contract' y 'In Contract' son el mismo estado con otro nombre
+  closed:
+    display: "Closed"
+    patterns: ['^closed$', '^close[sd]?$']
+  on_hold:
+    display: "On Hold"
+    patterns: ['^on\s*hold$', '^hold$', '^backburner$']
+
+# ============================================================================
+# 3. CAMPOS CANÓNICOS
+#
+# tier:
+#   core     -> presente en las 3 hojas de búsqueda, alimenta ambas vistas
+#   extended -> aplica a cualquier inmueble, no se capturó en todas las hojas
+#   vertical -> solo tiene sentido en ciertos verticales
+#   derived  -> lo calcula el ETL, no viene del origen
+#   extracted-> sale de las notas (regex + LLM), siempre con source_snippet
+#
+# aliases: se comparan sobre el encabezado normalizado
+#          (lower, sin espacios/puntuación) -> 'Clear Height' == 'Clear height'
+#
+# Cualquier columna del origen que NO esté aquí NO se descarta:
+# va al campo `extras` (JSON) y se reporta en el load_report.
+# ============================================================================
+
+fields:
+
+  # ---- IDENTIDAD ----------------------------------------------------------
+  deal_id:
+    tier: derived
+    type: string
+    doc: >
+      Hash determinístico. site: (sheet, client, address).
+      market_search: (sheet, client, city, state).
+      NO se deriva del orden de filas: si se recalculara por índice, al
+      reordenar el Sheet las ediciones y confirmaciones quedarían pegadas
+      al deal equivocado, en silencio.
+  record_type:
+    tier: derived
+    type: enum
+    values: [site, market_search]
+    doc: >
+      market_search = fila sin dirección (típicamente Sourcing): representa
+      una búsqueda de mercado, no un inmueble. NO se descarta:
+      target_weekly_view las conserva mostrando "-".
+  source_sheet:
+    tier: derived
+    type: string
+
+  # ---- NÚCLEO -------------------------------------------------------------
+  client:
+    tier: core
+    type: string
+    aliases: ["Client name"]
+  vertical:
+    tier: derived
+    type: string
+    doc: "Del prefijo de la hoja, vía verticals."
+  market:
+    tier: core
+    type: string
+    aliases: ["Metro"]
+    doc: >
+      OJO: NO es la ubicación del inmueble. Es el mandato de búsqueda del
+      cliente. av_clientC_atl tiene Metro=Atlanta con sitios en Culver City,
+      Torrance, Miami y San Diego. target_weekly_view usa ESTE campo como
+      su columna "Market". Confundirlo con city rompe la vista semanal.
+  city:
+    tier: core
+    type: string
+    aliases: ["City"]
+    doc: "Ubicación real del inmueble."
+  state:
+    tier: core
+    type: string
+    aliases: ["State"]
+  address:
+    tier: core
+    type: string
+    aliases: ["Address"]
+  status:
+    tier: core
+    type: enum
+    aliases: ["Status"]
+    doc: "Normalizado vía status_map. Original en status_raw."
+  status_raw:
+    tier: derived
+    type: string
+    doc: "Valor exacto del origen. Solo para el tooltip de auditoría."
+  bldg_sf:
+    tier: core
+    type: number
+    aliases: ["Bldg SF"]
+  list_price:
+    tier: core
+    type: money
+    aliases: ["List Price"]
+  lot_sf:
+    tier: core
+    type: number
+    aliases: ["Lot SF"]
+  price_per_sf:
+    tier: derived
+    type: money
+    aliases: ["List Price/SF"]
+    recompute: "list_price / bldg_sf"
+    doc: >
+      Se RECALCULA, no se confía en el origen. Si el valor del origen
+      difiere >1%, se conserva el calculado y se reporta la discrepancia.
+      Esto es cálculo, no imputación: solo se deriva si ambos operandos existen.
+  price_per_lot_sf:
+    tier: derived
+    type: money
+    aliases: ["List Price/Lot SF"]
+    recompute: "list_price / lot_sf"
+  notes:
+    tier: core
+    type: text
+    aliases: ["Notes"]
+
+  # ---- EXTENDIDOS ---------------------------------------------------------
+  zoning:
+    tier: extended
+    type: string
+    aliases: ["Zoning"]
+  clear_height_min:
+    tier: extended
+    type: number
+    unit: ft
+    aliases: ["Clear Height", "Clear height"]
+    parse: >
+      Valores mixtos: 14 (numérico) y '15-51' (rango en texto).
+      Se parsean min/max; el texto original va a extras.clear_height_raw.
+      Así el filtro "clear height >= 14" funciona sin mentir sobre el rango.
+  clear_height_max:
+    tier: extended
+    type: number
+    unit: ft
+  dh_doors:
+    tier: extended
+    type: integer
+    aliases: ["DH Doors"]
+    doc: "Dock-high. NO fusionar con gl_doors: son conceptos distintos."
+  power_amps:
+    tier: extended
+    type: integer
+    unit: A
+    aliases: ["Power"]
+    parse: >
+      '2,400A' -> 2400 ; '400A' -> 400. Quitar comas y la 'A' final.
+      Original en power_raw.
+      2,400A vs 400A es una diferencia REAL (planta de alimentos de 30k SF
+      vs local de 10k SF), no un outlier a corregir.
+      0 es un valor válido (sin acometida). Un dato ausente va vacío, NUNCA 0.
+  power_raw:
+    tier: derived
+    type: string
+  broker:
+    tier: extended
+    type: string
+    aliases: ["Broker"]
+  broker_phone:
+    tier: extended
+    type: phone
+    aliases: ["Phone #"]
+    doc: "Clave de join con contact_tracker (por teléfono, no por nombre)."
+  property_type:
+    tier: extended
+    type: enum
+    aliases: ["Property Type"]
+    values: [Industrial, Retail, Land, Office, Other]
+  sale_status:
+    tier: extended
+    type: string
+    aliases: ["Sale Status"]
+  days_on_market:
+    tier: extended
+    type: integer
+    aliases: ["Days On Market"]
+    doc: >
+      Días PUBLICADO, no días en etapa del funnel. En la UI se rotula
+      "Días publicado (aprox. — no es tiempo en etapa)".
+      El tiempo en etapa real no existe en el origen; se empieza a registrar
+      desde el primer día vía audit_log. Supuesto declarado.
+
+  # ---- ESPECÍFICOS DE VERTICAL -------------------------------------------
+  miles_from_airport:
+    tier: vertical
+    type: number
+    aliases: ["Miles from Airport"]
+    applies_to: [catering]
+    doc: "Criterio central del catering aéreo. En Food/AV: not_yet_known."
+  gl_doors:
+    tier: vertical
+    type: integer
+    aliases: ["GL Doors"]
+    applies_to: [catering]
+  rent_per_sf:
+    tier: vertical
+    type: money
+    aliases: ["Rent/SF"]
+    applies_to: [catering, food]
+
+  # ---- EXTRAÍDOS DE NOTAS (regex + LLM) -----------------------------------
+  # Todos nacen con estado 'assumed' y guardan source_snippet.
+  deal_type:
+    tier: extracted
+    type: enum
+    values: [sale, lease]
+    default: sale
+    doc: >
+      food fila 9: "received lease draft, $4M/yr rent" -> lease.
+      Explica por qué los campos de venta están vacíos en esa fila.
+      Señales: 'lease', 'rent', '/yr', 'free rent'.
+  current_price:
+    tier: extracted
+    type: money
+    doc: >
+      Precio NEGOCIADO, distinto del list_price.
+      av fila 3: list 3,325,000 / nota "agreed to $3M"  -> 3000000
+      catering fila 2: list 5,975,000 / nota "best and final $5.75M" -> 5750000
+      Un socio en reunión quiere ver este número, no el de lista.
+      Se muestran ambos.
+  key_dates:
+    tier: extracted
+    type: json
+    doc: >
+      'DD date 9/18', 'closing 11/25', '60 day dd, 30 day close'.
+      Año ausente en el origen -> se asume el año en curso y se marca.
+  extras:
+    tier: derived
+    type: json
+    doc: "Cualquier columna del origen sin mapeo. Nada se descarta en silencio."
+
+# ============================================================================
+# 4. CAPA DE SUPUESTOS  (opción A: una columna en el mismo dataset)
+# ============================================================================
+
+assumptions:
+  column: assumptions
+  type: list[string]
+  shape: "Lista simple de nombres de campo. Nada más."
+  example: ["power_amps"]
+  doc: >
+    El quién / cuándo / con qué fuente NO se guarda aquí: ya vive en
+    audit_log, que hay que construir de todos modos para el requisito 3.
+    El tooltip de la celda lee la última entrada de audit_log para
+    (deal_id, field). Una sola bitácora sirviendo a los tres requisitos.
+
+  seeded_by:
+    - name: color_scan
+      doc: >
+        Barrido GENÉRICO de todas las celdas de todas las hojas con openpyxl.
+        Cualquier fuente con color distinto de automático/negro -> assumed.
+        Hoy produce exactamente 1 entrada: av_clientC_atl!O2 (Power=400A).
+        Funciona igual para cualquier columna, hoy y con 170 tabs.
+    - name: notes_extraction
+      doc: "current_price, deal_type, key_dates. Siempre con source_snippet."
+    - name: user_input
+      doc: "Escrito por un usuario en la app sobre un hueco esperado."
+
+  # Regla de edición (locking). Una sola línea de lógica:
+  edit_rule: >
+    Un campo es EDITABLE si está vacío o si su nombre aparece en `assumptions`.
+    En cualquier otro caso está BLOQUEADO y requiere desbloqueo explícito,
+    que queda registrado en audit_log.
+
+  promotion: >
+    assumed -> confirmed exige capturar `source`. No es un checkbox suelto:
+    "confirmado por <usuario> el <fecha> según <fuente>".
+    Al confirmar, el campo sale de `assumptions` y queda bloqueado.
+
+  display:
+    assumed_style: "ámbar + punto indicador"
+    tooltip: "supuesto — <source> — <by> <at>"
+    filters: ["mostrar solo confirmados", "resaltar supuestos"]
+    aggregates: >
+      Todo KPI que incluya valores supuestos DEBE declararlo:
+      "$31.5M en pipeline · incluye 1 valor supuesto", con switch para excluir.
+      Un agregado que mezcla en silencio reintroduce el problema original.
+    weekly_view: >
+      Un valor supuesto que llega a liderazgo va marcado. Siempre.
+
+# ============================================================================
+# 5. MATRIZ DE EXPECTATIVAS  (paso 4.5 — qué hacer con los nulos)
+#
+# Los nulos de este dataset NO son aleatorios: los explican tres dimensiones.
+# Un hueco cae en uno de dos cubos:
+#   not_yet_known -> no aplica (aún o nunca). Se muestra "—". No cuenta.
+#   missing       -> debería estar y no está. Es una ALERTA, y se puede
+#                    llenar como supuesto desde la app.
+# ============================================================================
+
+expectations:
+
+  by_stage:
+    sourcing:
+      expected: [client, vertical, market, status, notes]
+      not_yet_known: [address, city, state, list_price, bldg_sf, lot_sf,
+                      zoning, power_amps, broker, property_type]
+      doc: "Todavía no hay inmueble. El vacío es el estado normal."
+    in_pipeline:
+      expected: [address, city, list_price, bldg_sf, property_type]
+    pre_loi:
+      expected: [address, city, list_price, bldg_sf, broker]
+    negotiating_loi:
+      expected: [address, city, list_price, bldg_sf, lot_sf, broker, property_type]
+    negotiating_psa:
+      expected: [address, city, list_price, bldg_sf, lot_sf, broker, property_type]
+    in_contract:
+      expected: [address, city, list_price, bldg_sf, lot_sf, broker,
+                 property_type, key_dates]
+      doc: "Un deal en In Contract sin precio es una alarma, no un hueco."
+    closed:
+      expected: [address, city, list_price, bldg_sf, broker, property_type, key_dates]
+      doc: "Deal cerrado: el expediente debe estar completo."
+    on_hold:
+      expected: [client, vertical, market, status, notes]
+      doc: >
+        Pausa, no etapa. No se exige nada más allá de la identificación:
+        un deal puede pausarse en cualquier punto del funnel.
+
+  by_property_type:
+    Land:
+      not_applicable: [bldg_sf, clear_height_min, clear_height_max,
+                       dh_doors, gl_doors, price_per_sf]
+      doc: "av fila 4: es un terreno. No hay edificio que medir."
+
+  by_deal_type:
+    lease:
+      not_applicable: [list_price, price_per_sf, price_per_lot_sf]
+      expected: [rent_per_sf]
+      doc: "food fila 9: arriendo. Por eso los campos de venta están vacíos."
+
+  never_impute: >
+    Un hueco NUNCA se rellena con promedios, medianas ni valores generados
+    por un modelo. En un pipeline que liderazgo lee en reunión, un número
+    sin fuente se repite frente a un cliente.
+    Permitido: benchmarks mostrados AL LADO y claramente etiquetados
+    ("mediana $/SF en Food/NYC: 259"), nunca dentro del campo.
+    Permitido: que un usuario lo escriba como supuesto, con su nombre.
+
+# ============================================================================
+# 6. USUARIOS Y PERMISOS  (requisito 3)
+# ============================================================================
+
+roles:
+  viewer:
+    can: [read, filter, export]
+  analyst:
+    can: [read, filter, export, add_assumption, edit_assumed]
+  lead:
+    can: [read, filter, export, add_assumption, edit_assumed,
+          confirm, unlock, edit_confirmed]
+  admin:
+    can: ["*", manage_users]
+
+audit_log:
+  doc: >
+    Registra login, cambios de valor, de estado y de etapa.
+    Misma tabla que alimenta el dashboard de actividad del requisito 3
+    Y que resuelve el "tiempo en etapa" hacia adelante.
+  columns: [ts, user, role, deal_id, field, action, value_before, value_after, source]
+
+# ============================================================================
+# 7. SUPUESTOS DE ESTE ESQUEMA  (van al process log)
+# ============================================================================
+
+assumptions_log:
+  - "La copia del spreadsheet no trae config tab; el vertical se deriva del
+     prefijo de la hoja y el mapeo vive aquí, no en el código."
+  - "'Listed' no existe en el funnel del brief -> In Pipeline, marcado como dudoso."
+  - "'Under Contract' == 'In Contract'."
+  - "Metro es el mandato del cliente, no la ubicación del sitio."
+  - "days_on_market aproxima el tiempo en etapa; el dato real se registra
+     desde hoy vía audit_log."
+  - "Las fechas de las notas no traen año; se asume el año en curso."
+  - "contact_tracker se une a deals por teléfono. av fila 2 registra el
+     broker como 'Sam Ortiz' con el teléfono de 'James Ford' en el tracker:
+     la discrepancia se MUESTRA, no se resuelve a la fuerza."

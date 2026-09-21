@@ -1,0 +1,177 @@
+{
+  "739191ab76a2d25c": {
+    "findings": [
+      {
+        "title": "Pipeline value concentrated in one stage",
+        "category": "risk",
+        "body": "Of the total pipeline_value_usd of $134,541,500, the Negotiating PSA stage alone accounts for $95,075,000 across 5 records — roughly two-thirds of all tracked value sitting in a single funnel stage. If any of these 5 deals stalls or falls through, the pipeline value drops sharply.",
+        "action": "Review the 5 Negotiating PSA deals individually this week to confirm none are at risk of slipping.",
+        "evidence": [
+          "Negotiating PSA: 5 records, $95,075,000",
+          "Total pipeline_value_usd: $134,541,500"
+        ],
+        "figures": [
+          95075000,
+          5,
+          134541500
+        ]
+      },
+      {
+        "title": "Food vertical deals missing broker and property type",
+        "category": "data_quality",
+        "body": "Six of the ten data-gap entries are Food vertical deals missing 'broker' and/or 'property_type' fields, with completeness scores as low as 67% (201 N Miami Ave) and 73% (2733 W Harrison St, 37 S Hudson St, 250001 Km 3 via chia cajica). This is worth checking since Food is the largest vertical by pipeline value at $100,115,000.",
+        "action": "Assign someone to backfill broker and property_type fields for the 6 flagged Food deals before the meeting.",
+        "evidence": [
+          "201 N Miami Ave: 67% complete",
+          "2733 W Harrison St: 73%",
+          "37 S Hudson St: 75%",
+          "3330 NW 60th St: 82%",
+          "7500 NW 25th St: 82%",
+          "250001 Km 3 via chia cajica: 73%"
+        ],
+        "figures": [
+          67.0,
+          73.0,
+          75.0,
+          82.0,
+          100115000
+        ]
+      },
+      {
+        "title": "Negotiated prices came in below list on all 3 tracked deals",
+        "category": "opportunity",
+        "body": "The three deals with negotiated-vs-list data all closed negotiations below asking: 2733 W Harrison St at -6.15%, 5861 Washington Blvd at -9.77%, and 9213 183rd St at -3.77%. This is only 3 records, but it's worth checking whether this negotiation leverage pattern holds as more deals get tracked.",
+        "action": "Have the deal team document negotiation tactics used on these 3 deals to potentially replicate on active PSA/LOI deals.",
+        "evidence": [
+          "2733 W Harrison St: -6.15%",
+          "5861 Washington Blvd: -9.77%",
+          "9213 183rd St: -3.77%"
+        ],
+        "figures": [
+          -6.15,
+          -9.77,
+          -3.77
+        ]
+      },
+      {
+        "title": "9213 183rd St has been on market 423 days",
+        "category": "risk",
+        "body": "9213 183rd St shows days_on_market of 423 while still in Negotiating LOI stage, and it's also missing the 'client' field (completeness 91%). A listing open this long is worth checking to understand what's holding up progression to LOI/PSA.",
+        "action": "Get a status update from the deal lead on 9213 183rd St this week and confirm the client field.",
+        "evidence": [
+          "9213 183rd St: days_on_market 423",
+          "9213 183rd St: completeness 91%, missing client"
+        ],
+        "figures": [
+          423.0,
+          91.0
+        ]
+      },
+      {
+        "title": "Two deals show price-per-SF far above the pipeline median",
+        "category": "data_quality",
+        "body": "250001 Km 3 via chia cajica shows price_per_sf of 1725 and 5861 Washington Blvd shows 1139, versus a pipeline median of 261.9 (range 116.07–1725 across 11 records). Both are flagged by the pipeline as 'kept as-is (looks real)', but the size of the gap is worth checking manually before quoting these figures externally.",
+        "action": "Have an analyst independently verify the bldg_sf/price inputs behind these two price_per_sf figures.",
+        "evidence": [
+          "250001 Km 3 via chia cajica: price_per_sf 1725",
+          "5861 Washington Blvd: price_per_sf 1139",
+          "Pipeline median price_per_sf: 261.9"
+        ],
+        "figures": [
+          1725,
+          1139,
+          261.9,
+          116.07
+        ]
+      }
+    ],
+    "headline": "Two-thirds of pipeline value ($95,075,000 of $134,541,500) sits in Negotiating PSA, and several Food deals are missing broker/property_type data — both worth checking before Monday.",
+    "_model": "claude-sonnet-5"
+  },
+  "f2a815f64ae8b195": {
+    "findings": [
+      {
+        "title": "Negotiating PSA holds largest share of pipeline value",
+        "category": "opportunity",
+        "body": "The Negotiating PSA stage has 4 records and 4 sites worth $26,075,000, the highest value_usd of any stage in the funnel. This is where the most capital is concentrated and closest to closing.",
+        "action": "Review the 4 Negotiating PSA deals individually this week to confirm nothing is stalling before contract.",
+        "evidence": [
+          "Negotiating PSA: 4 records, 4 sites, $26,075,000"
+        ],
+        "figures": [
+          4,
+          4,
+          26075000
+        ]
+      },
+      {
+        "title": "201 N Miami Ave missing core deal fields at 67% complete",
+        "category": "data_quality",
+        "body": "201 N Miami Ave (Food, In Pipeline) is missing bldg_sf, list_price, and property_type, with only 67.0% completeness — the lowest in the dataset. Without list_price the deal cannot be properly valued or compared.",
+        "action": "Have the deal owner backfill bldg_sf, list_price, and property_type for 201 N Miami Ave before it advances stages.",
+        "evidence": [
+          "201 N Miami Ave: missing bldg_sf, list_price, property_type; completeness_pct 67.0"
+        ],
+        "figures": [
+          67.0
+        ]
+      },
+      {
+        "title": "9213 183rd St has sat 423 days with data unconfirmed",
+        "category": "risk",
+        "body": "9213 183rd St has been on market 423 days per the outliers flag, is missing the 'client' field (completeness 91.0%), and its negotiated price of $5,750,000 (vs list $5,975,000, delta -3.77%) is listed as an unconfirmed value extracted from free-text notes. This combination is worth checking before committing further resources.",
+        "action": "Verify the current_price and client fields for 9213 183rd St directly with the broker before the next LOI step.",
+        "evidence": [
+          "9213 183rd St: days_on_market 423.0",
+          "missing_fields: client, completeness_pct 91.0",
+          "list_usd 5975000, negotiated_usd 5750000, delta_pct -3.77",
+          "unconfirmed current_price 5750000.0"
+        ],
+        "figures": [
+          423.0,
+          91.0,
+          5975000,
+          5750000,
+          -3.77
+        ]
+      },
+      {
+        "title": "5861 Washington Blvd price/sf of 1139 is worth checking",
+        "category": "risk",
+        "body": "5861 Washington Blvd shows a price_per_sf of 1139, far above the dataset median of 259.74 (max 1139 among 10 priced records), and is flagged as an outlier though noted as 'looks real.' It also has a negotiated price of $3,000,000 vs list $3,325,000 (-9.77%), an unconfirmed value from free-text extraction.",
+        "action": "Confirm the underlying square footage and price figures for 5861 Washington Blvd with the source document before relying on this comp.",
+        "evidence": [
+          "5861 Washington Blvd: price_per_sf 1139, flagged outlier",
+          "median price_per_sf 259.74",
+          "list_usd 3325000, negotiated_usd 3000000, delta_pct -9.77",
+          "unconfirmed current_price 3000000.0"
+        ],
+        "figures": [
+          1139,
+          259.74,
+          3325000,
+          3000000,
+          -9.77
+        ]
+      },
+      {
+        "title": "Airline Catering deals repeatedly missing client field",
+        "category": "data_quality",
+        "body": "Four Airline Catering deals — 9213 183rd St, 85 Channel Dr, 648 Main St, and Westbury (no address) — are all missing the 'client' field, with completeness ranging 78.0% to 91.0%. This is a repeated gap in one vertical, not a one-off.",
+        "action": "Assign one team member to close the 'client' field gap across all four Airline Catering records this week.",
+        "evidence": [
+          "9213 183rd St, 85 Channel Dr, 648 Main St, Westbury (no address): missing_fields client",
+          "completeness_pct 91.0, 89.0, 89.0, 78.0"
+        ],
+        "figures": [
+          91.0,
+          89.0,
+          89.0,
+          78.0
+        ]
+      }
+    ],
+    "headline": "The $26,075,000 sitting in Negotiating PSA is the week's priority, but data gaps on 201 N Miami Ave (67.0% complete) and an unverified 1139 price/sf on 5861 Washington Blvd need checking before any of it is presented as solid.",
+    "_model": "claude-sonnet-5"
+  }
+}

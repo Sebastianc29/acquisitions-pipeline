@@ -1,0 +1,12 @@
+﻿# Secrets — never
+.env
+config/google_credentials.json
+config/auth.yaml
+config/sheets.json
+.streamlit/secrets.toml
+secrets_auth.txt
+
+# Generated at runtime
+__pycache__/
+*.pyc
+data/deals.db
