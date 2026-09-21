@@ -19,11 +19,26 @@ of truth. The second is the better end state and the harder conversation.
 
 ## 2. The scheduled refresh
 
-The architecture already supports it — `deals` is rewritten while
-`deal_overrides` survives, and conflicts are recorded rather than resolved —
-but nothing runs on a timer yet. A GitHub Actions cron calling `etl.py` each
-morning is about twenty lines. What needs care is the conflict UI: right now
-conflicts are listed, but there is no workflow to resolve one.
+Today somebody still has to press **Refresh from Sheet**. It works — the
+Bogotá deal added to the spreadsheet appeared on the next refresh — but it
+is a button, and the point of the exercise was to remove manual steps, not
+relocate them.
+
+The architecture already supports running it unattended: `deals` is
+rewritten while `deal_overrides` survives, and conflicts are recorded rather
+than resolved. What is missing is the scheduler. A GitHub Actions cron
+calling `etl.py` each morning is about twenty lines and costs nothing; a
+small always-on worker would be the heavier version if the refresh ever
+needs to be more frequent than hourly. For 170 tabs read once a day, the
+cron is the right size — spinning up a cluster for eighteen thousand cells
+would be architecture theatre.
+
+Two things need care before switching it on. The conflict flow: conflicts
+are currently listed but there is no UI to resolve one, and unattended
+refreshes will produce them. And the database: on Streamlit Community Cloud
+the filesystem is ephemeral, so a scheduled job writing to `deals.db` needs
+somewhere durable to write — managed Postgres is the natural move, and
+`db.py` is small enough that the change is contained.
 
 ## 3. Real identity, real security
 
