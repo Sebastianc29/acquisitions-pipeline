@@ -3,7 +3,7 @@
 One dataset, five views. Replaces both the 170-tab spreadsheet and the deck
 that somebody rebuilds by hand every Monday.
 
-**Live app:** _paste your Streamlit URL here after deploying_
+**Live app:** https://acquisitions-pipeline-gxiehbbnx7jvutyhrvqhko.streamlit.app 
 
 ---
 
